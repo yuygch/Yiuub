@@ -25,10 +25,26 @@ function App() {
     ])
   }
 
-  function downloadShot(shot: Shot) {
+  async function saveShot(shot: Shot) {
+    const filename = `filmcam-${shot.presetLabel.toLowerCase()}-${shot.takenAt}.jpg`
+    const res = await fetch(shot.dataUrl)
+    const blob = await res.blob()
+    const file = new File([blob], filename, { type: 'image/jpeg' })
+
+    // iOS Safari has no direct "save to Photos" from a web page; the
+    // native share sheet's "Save Image" action is the closest equivalent.
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] })
+      } catch {
+        // user cancelled the share sheet, nothing else to do
+      }
+      return
+    }
+
     const a = document.createElement('a')
     a.href = shot.dataUrl
-    a.download = `filmcam-${shot.presetLabel.toLowerCase()}-${shot.takenAt}.jpg`
+    a.download = filename
     a.click()
   }
 
@@ -80,8 +96,8 @@ function App() {
         <div className="lightbox" onClick={() => setViewing(null)}>
           <img src={viewing.dataUrl} alt={viewing.presetLabel} onClick={(e) => e.stopPropagation()} />
           <div className="lightbox-actions" onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={() => downloadShot(viewing)}>
-              Descargar
+            <button type="button" onClick={() => saveShot(viewing)}>
+              Guardar
             </button>
             <button type="button" onClick={() => setViewing(null)}>
               Cerrar
